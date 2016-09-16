@@ -6,9 +6,11 @@
     [clojure.tools.namespace.repl :refer [disable-reload! refresh clear set-refresh-dirs]]
     [com.stuartsierra.component :as component]
     [figwheel-sidecar.repl-api :as ra]
-    [taoensso.timbre :refer [info set-level!]]
+    [taoensso.timbre :refer [info set-level!] :as timbre]
     [todomvc.system :as system]
-    ))
+    [watch :refer [start-watching stop-watching reset-fn]]
+    [juxt.dirwatch :as dw]))
+
 
 ;;FIGWHEEL
 
@@ -32,9 +34,9 @@
 
 ;;SERVER
 
-(set-refresh-dirs "dev/server" "src/server" "specs/server")
+(set-refresh-dirs "src/server" "specs/server" "dev/server")
 
-(defonce system (atom nil))
+(def system (atom nil))
 
 (set-level! :info)
 
@@ -44,9 +46,11 @@
   (reset! system (system/make-system)))
 
 (defn start "Start (an already initialized) web server." [] (swap! system component/start))
-(defn stop "Stop the running web server." []
-  (swap! system component/stop)
-  (reset! system nil))
+
+(defn stop "Stop the running web server. Is a no-op if the server is already stopped" []
+  (when @system
+    (swap! system component/stop)
+    (reset! system nil)))
 
 (defn go "Load the overall web server system and start it." []
   (init)
@@ -58,5 +62,4 @@
   (stop)
   (refresh :after 'user/go))
 
-
-
+(reset! watch/reset-fn reset)
